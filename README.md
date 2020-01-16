@@ -10,7 +10,7 @@ The modifications I have made:
 3. In main.c, in the loop ('while (1) {') I have simplified the code as it 's only transmitter.
 
 
-In 1st the picture you can see how I have setted the pins of STM32.
+In 1st the picture you can see how I have setted the pins of STM32. 
 In the 2nd the picture you can see how the two ICs are connected.
 
 ![sx1278-test-code](https://user-images.githubusercontent.com/6674193/72550890-66dc7900-389c-11ea-9fcd-241da2b11519.png)
