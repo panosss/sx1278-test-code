@@ -1,8 +1,9 @@
 # sx1278-test-code
 Test code for sx1278 with STM32F030F4P6 .
-This is a non working code (code taken from https://github.com/wdomski/SX1278-example).
+This is a working code (code taken from https://github.com/wdomski/SX1278-example).
 It 's a transmitter (I already have a working and tested receiver with ESP8266).
-I 'm tryning to find the reason why it 's no working.
+
+It 's working. BUT there are missed packets: if the transmitter transmits a 100 packets (messages) the reciever will receive only 10 of them.
 
 The modifications I have made:
 1. In main.c, master = 1; So I don't have to use a MODE_Pin.
