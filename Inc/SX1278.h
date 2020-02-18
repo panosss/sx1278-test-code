@@ -304,3 +304,4 @@ uint8_t LoRa_singleTransfer(SX1278_t * module, uint8_t address, uint8_t value);
 void LoRa_writeRegister(SX1278_t * module, uint8_t address, uint8_t value);
 
 #endif
+
