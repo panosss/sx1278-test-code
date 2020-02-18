@@ -136,14 +136,11 @@ void SX1278_config(SX1278_t * module, volatile  uint8_t frequency, uint8_t power
 	 LoRa_writeRegister(module, RegFreqMsb, 0x6C);
 	 LoRa_writeRegister(module, RegFreqMid, 0x40);
 	 LoRa_writeRegister(module, RegFreqLsb, 0x00);
-
 	 7094273 = 6C4001
 	 7094274 = 6C4002
 	 7094275 = 6C4003
-
 	 ..7094281 = 6C4009
 	 ^6C400F
-
 	6C3FFE    D1!!!
 	 */
 	LoRa_writeRegister(module, RegFreqMsb, 0x6C);
@@ -409,3 +406,6 @@ uint8_t LoRa_singleTransfer(SX1278_t * module, uint8_t address, uint8_t value) {
 
 	return response;
 }
+
+
+

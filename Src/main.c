@@ -27,7 +27,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
-#include "serial.h"
 #include "stdint.h"
 
 #include <stdio.h>
