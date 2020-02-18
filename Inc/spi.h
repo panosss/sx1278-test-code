@@ -56,4 +56,3 @@ void MX_SPI1_Init(void);
   */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
-
