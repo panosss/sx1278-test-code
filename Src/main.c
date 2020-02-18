@@ -20,16 +20,18 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "SX1278.h"
 #include "spi.h"
 #include "usart.h"
-#include "serial.h"
 #include "gpio.h"
-#include "stdint.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
+#include "serial.h"
+#include "stdint.h"
+
 #include <stdio.h>
+#include "SX1278.h"
 
 /* USER CODE END Includes */
 
@@ -51,14 +53,17 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+/* Private variables ---------------------------------------------------------*/
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
+/* Private function prototypes -----------------------------------------------*/
+
 int _write(int file, char *ptr, int len) {
-	HAL_UART_Transmit(&huart1,(uintptr_t)ptr,len,50);  // uintptr_t  uint8_t
+	HAL_UART_Transmit(&huart1, (uintptr_t) ptr, len, 50);  // uintptr_t  uint8_t
 	return len;
 }
 
@@ -73,155 +78,140 @@ SX1278_t SX1278;
 int master;
 int ret;
 
-char buffer[100];
+char buffer[64];
 
 int message;
 int message_length;
+
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
-{
-  /* USER CODE BEGIN 1 */
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
+	/* USER CODE BEGIN 1 */
 
-  /* USER CODE END 1 */
-  
+	/* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
+	/* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
 
-  /* USER CODE BEGIN Init */
+	/* USER CODE BEGIN Init */
 
-  /* USER CODE END Init */
+	/* USER CODE END Init */
 
-  /* Configure the system clock */
-  SystemClock_Config();
+	/* Configure the system clock */
+	SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
+	/* USER CODE BEGIN SysInit */
 
-  /* USER CODE END SysInit */
+	/* USER CODE END SysInit */
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_SPI1_Init();
-  MX_USART1_UART_Init();
-  /* USER CODE BEGIN 2 */
-   //master = HAL_GPIO_ReadPin(MODE_GPIO_Port, MODE_Pin);
-   master = 1;
-   printf("Mode: Master\r\n");
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_SPI1_Init();
+	MX_USART1_UART_Init();
+	/* USER CODE BEGIN 2 */
+	master = 1;
+	printf("Mode: Master\r\n");
+	//HAL_GPIO_WritePin(MODE_GPIO_Port, MODE_Pin, GPIO_PIN_RESET);
 
-   //initialize LoRa module
-   /*
-    LED_GPIO_Port GPIOA
-    LED_Pin GPIO_PIN_0     LED=PA0
-    NSS_GPIO_Port GPIOA
-    NSS_Pin GPIO_PIN_4     NSS=PA4
-    DIO0_GPIO_Port GPIOA
-    DIO0_Pin GPIO_PIN_10   DIO0=PA10
-    RESET_GPIO_Port GPIOA
-    RESET_Pin GPIO_PIN_9   RESET =PA9
-    MODE_GPIO_Port GPIOB            // I have no mode pin
-    MODE_Pin GPIO_PIN_1    MODE=PB1 // I have no mode pin
-    */
-   SX1278_hw.dio0.port = DIO0_GPIO_Port;
-   SX1278_hw.dio0.pin = DIO0_Pin;
-   SX1278_hw.nss.port = NSS_GPIO_Port;
-   SX1278_hw.nss.pin = NSS_Pin;
-   SX1278_hw.reset.port = RESET_GPIO_Port;
-   SX1278_hw.reset.pin = RESET_Pin;
-   SX1278_hw.spi = &hspi1;
+	//initialize LoRa module
+	SX1278_hw.dio0.port = DIO0_GPIO_Port;
+	SX1278_hw.dio0.pin = DIO0_Pin;
+	SX1278_hw.nss.port = NSS_GPIO_Port;
+	SX1278_hw.nss.pin = NSS_Pin;
+	SX1278_hw.reset.port = RESET_GPIO_Port;
+	SX1278_hw.reset.pin = RESET_Pin;
+	SX1278_hw.spi = &hspi1;
 
-   SX1278.hw = &SX1278_hw;
+	SX1278.hw = &SX1278_hw;
 
-   printf("Configuring LoRa module\r\n");
-   SX1278_begin(&SX1278, SX1278_433MHZ, SX1278_POWER_20DBM, SX1278_LORA_SF_7,
-         SX1278_LORA_BW_125KHZ, 10);
+	printf("Configuring LoRa module\r\n");
+	SX1278_begin(&SX1278, SX1278_433MHZ, SX1278_POWER_20DBM, SX1278_LORA_SF_7,
+	SX1278_LORA_BW_125KHZ, 8);
+	printf("Done configuring LoRaModule\r\n");
 
-   // SX1278_LORA_BW_62_5KHZ = 6. Arduino: long Bandwidth = 62.5E3;
-   // bw=20.8kHz=3. Arduino: long Bandwidth = 20.8E3;
-   // packetLength = 10
+	ret = SX1278_LoRaEntryTx(&SX1278, 16, 2000);
+	printf("1. ret=%i\r\n", ret);
 
-   printf("Done configuring LoRaModule\r\n");
+	printf("2. Version=%u\r\n", LoRa_readRegister(&SX1278, REG_VERSION));
+	printf("2. REG_LR_DIOMAPPING1: %u\r\n",
+			LoRa_readRegister(&SX1278, REG_LR_DIOMAPPING1));
+	printf("2. REG_LR_PADAC: %u\r\n", LoRa_readRegister(&SX1278, REG_LR_PADAC));
+	printf("2. LR_RegIrqFlagsMask: %u\r\n",
+			LoRa_readRegister(&SX1278, LR_RegIrqFlagsMask));
+	printf("2. LR_RegPayloadLength: %u\r\n",
+			LoRa_readRegister(&SX1278, LR_RegPayloadLength));
+	printf("2. LR_RegFifoRxBaseAddr: %u\r\n",
+			LoRa_readRegister(&SX1278, LR_RegFifoRxBaseAddr));
 
-   if (master == 1) {
-      ret = SX1278_LoRaEntryTx(&SX1278, 16, 2000);
-   } else {
-      ret = SX1278_LoRaEntryRx(&SX1278, 16, 2000);
-   }
-   printf("1. Entry: %d\r\n", ret);
+	/* USER CODE END 2 */
 
-  /* USER CODE END 2 */
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
+	while (1) {
+		printf("Master ...\r\n");
+		HAL_Delay(3000); // 10 Seconds
+		printf("Sending package...\r\n");
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-   while (1) {
-      printf("Master ...\r\n");
-      HAL_Delay(2500);
-      printf("Sending package...\r\n");
+		message_length = sprintf(buffer, "Hello %d", message);
+		ret = SX1278_LoRaEntryTx(&SX1278, message_length, 2000);
+		printf("Entry: %d\r\n", ret);
 
-      message_length = sprintf(buffer, "Hello %d", message);
-      ret = SX1278_LoRaEntryTx(&SX1278, message_length, 2000);
-      printf("2. Entry: %d\r\n", ret);
+		printf("Sending %s\r\n", buffer);
+		ret = SX1278_LoRaTxPacket(&SX1278, (uint8_t *) buffer, message_length,
+				2000);
+		message += 1;
 
-      printf("Sending %s\r\n", buffer);
-      ret = SX1278_LoRaTxPacket(&SX1278, (uint8_t *) buffer, message_length,
-            2000);
-      message += 1;
+		printf("Transmission: %d\r\n", ret);
+		printf("Package sent...\r\n");
 
-      printf("Transmission: %d\r\n", ret);
-      printf("Package sent...\r\n");
+		/* USER CODE END WHILE */
 
+		/* USER CODE BEGIN 3 */
 
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-   }
-  /* USER CODE END 3 */
+	}
+	/* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
-void SystemClock_Config(void)
-{
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config(void) {
+	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
+	RCC_PeriphCLKInitTypeDef PeriphClkInit = { 0 };
 
-  /** Initializes the CPU, AHB and APB busses clocks 
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Initializes the CPU, AHB and APB busses clocks 
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+	/** Initializes the CPU, AHB and APB busses clocks
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+		Error_Handler();
+	}
+	/** Initializes the CPU, AHB and APB busses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+			| RCC_CLOCKTYPE_PCLK1;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
-  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK) {
+		Error_Handler();
+	}
+	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
+	PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
+	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+		Error_Handler();
+	}
 }
 
 /* USER CODE BEGIN 4 */
@@ -229,31 +219,30 @@ void SystemClock_Config(void)
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
-  /* USER CODE BEGIN Error_Handler_Debug */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void) {
+	/* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 
-  /* USER CODE END Error_Handler_Debug */
+	/* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(char *file, uint32_t line)
-{ 
-  /* USER CODE BEGIN 6 */
+{
+	/* USER CODE BEGIN 6 */
 	/* User can add his own implementation to report the file name and line number,
 	 tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
+	/* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
 
