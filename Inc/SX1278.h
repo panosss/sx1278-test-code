@@ -167,6 +167,8 @@
 #define  RegPaDac				0x4d
 #define  RegBitRateFrac			0x5d
 
+#define REG_PKT_SNR_VALUE       0x19
+#define REG_VERSION             0x42
 /**********************************************************
  **Parameter table define
  **********************************************************/
@@ -295,5 +297,10 @@ uint8_t SX1278_RSSI(SX1278_t * module);
 
 void SX1278_standby(SX1278_t * module);
 void SX1278_sleep(SX1278_t * module);
+
+float LoRa_packetSnr(SX1278_t * module);
+uint8_t LoRa_readRegister(SX1278_t * module, uint8_t address);
+uint8_t LoRa_singleTransfer(SX1278_t * module, uint8_t address, uint8_t value);
+void LoRa_writeRegister(SX1278_t * module, uint8_t address, uint8_t value);
 
 #endif
