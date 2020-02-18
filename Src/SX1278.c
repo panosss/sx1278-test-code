@@ -1,29 +1,3 @@
-
-Skip to content
-Pull requests
-Issues
-Marketplace
-Explore
-@panosss
-wdomski /
-SX1278-example
-
-4
-28
-
-    16
-
-Code
-Issues 4
-Pull requests 0
-Actions
-Projects 0
-Wiki
-Security
-Insights
-SX1278-example/Src/SX1278.c
-@wdomski wdomski Initial release. eedc4b5 on 28 Oct 2017
-344 lines (288 sloc) 10.3 KB
 /**
  * Author Wojciech Domski <Wojciech.Domski@gmail.com>
  * www: www.Domski.pl
@@ -38,6 +12,7 @@ SX1278-example/Src/SX1278.c
 #include "gpio.h"
 #include "spi.h"
 
+int counter = 0;
 //////////////////////////////////
 // logic
 //////////////////////////////////
@@ -143,7 +118,7 @@ void SX1278_defaultConfig(SX1278_t * module) {
 			module->LoRa_BW);
 }
 
-void SX1278_config(SX1278_t * module, uint8_t frequency, uint8_t power,
+void SX1278_config(SX1278_t * module, volatile  uint8_t frequency, uint8_t power,
 		uint8_t LoRa_Rate, uint8_t LoRa_BW) {
 	SX1278_sleep(module); //Change modem mode Must in Sleep mode
 	SX1278_hw_DelayMs(15);
@@ -151,8 +126,29 @@ void SX1278_config(SX1278_t * module, uint8_t frequency, uint8_t power,
 	SX1278_entryLoRa(module);
 	//SX1278_SPIWrite(module, 0x5904); //?? Change digital regulator form 1.6V to 1.47V: see errata note
 
-	SX1278_SPIBurstWrite(module, LR_RegFrMsb,
-			(uint8_t*) SX1278_Frequency[frequency], 3); //setting  frequency parameter
+	//SX1278_SPIBurstWrite(module, LR_RegFrMsb,
+	//		(uint8_t*) SX1278_Frequency[frequency], 3); //setting  frequency parameter
+
+	//setting  frequency parameter
+	/*
+	 *  f = (32 * SX1278_FRF_VALUE) / 2^19.       (32 * 7094272) / 2^19.
+	 * SX1278_FRF_VALUE should have the value 0x6C4000 (7094272)
+	 LoRa_writeRegister(module, RegFreqMsb, 0x6C);
+	 LoRa_writeRegister(module, RegFreqMid, 0x40);
+	 LoRa_writeRegister(module, RegFreqLsb, 0x00);
+
+	 7094273 = 6C4001
+	 7094274 = 6C4002
+	 7094275 = 6C4003
+
+	 ..7094281 = 6C4009
+	 ^6C400F
+
+	6C3FFE    D1!!!
+	 */
+	LoRa_writeRegister(module, RegFreqMsb, 0x6C);
+	LoRa_writeRegister(module, RegFreqMid, 0x40);
+	LoRa_writeRegister(module, RegFreqLsb, 0x00);
 
 	//setting base parameter
 	SX1278_SPIWrite(module, LR_RegPaConfig, SX1278_Power[power]); //Setting output power parameter
@@ -304,6 +300,8 @@ int SX1278_LoRaTxPacket(SX1278_t * module, uint8_t* txBuffer, uint8_t length,
 	SX1278_SPIWrite(module, LR_RegOpMode, 0x8b);	//Tx Mode
 	while (1) {
 		if (SX1278_hw_GetDIO0(module->hw)) { //if(Get_NIRQ()) //Packet send over
+			printf("counter= %i\r\n", counter);
+			counter++;
 			SX1278_SPIRead(module, LR_RegIrqFlags);
 			SX1278_clearLoRaIrq(module); //Clear irq
 			SX1278_standby(module); //Entry Standby mode
@@ -369,17 +367,45 @@ uint8_t SX1278_RSSI(SX1278_t * module) {
 	return temp;
 }
 
-    © 2020 GitHub, Inc.
-    Terms
-    Privacy
-    Security
-    Status
-    Help
 
-    Contact GitHub
-    Pricing
-    API
-    Training
-    Blog
-    About
+float LoRa_packetSnr(SX1278_t * module)
+{
+  //return ((int8_t)readRegister(REG_PKT_SNR_VALUE)) * 0.25;
+	//return ((int8_t)SX1278_SPIRead(module, REG_PKT_SNR_VALUE)) * 0.25;
 
+	//SX1278_hw_SPICommand(module->hw, REG_PKT_SNR_VALUE);
+	//return (SX1278_hw_SPIReadByte(module->hw)) * 0.25;
+	return ((int8_t)LoRa_readRegister(module, REG_PKT_SNR_VALUE)) * 0.25;
+}
+
+uint8_t LoRa_readRegister(SX1278_t * module, uint8_t address) {
+	return LoRa_singleTransfer(module, address & 0x7f, 0x00); // 01111111. CLEAR bit 7, (wnr bit, 0 = for read access)
+}
+
+void LoRa_writeRegister(SX1278_t * module, uint8_t address, uint8_t value) {
+	LoRa_singleTransfer(module, address | 0x80, value); // 0x80=10000000. SET bit 7(wnr bit, 1 = for write access). Leave 0 to 6 untouched.
+}
+
+uint8_t LoRa_singleTransfer(SX1278_t * module, uint8_t address, uint8_t value) {
+	uint8_t response = 0xFF;
+
+	HAL_GPIO_WritePin(module->hw->nss.port, module->hw->nss.pin,
+			GPIO_PIN_RESET);
+
+	// read wnr bit value (0 = read access, 1 = write access)
+	if (address >> 7 == 0) { // read
+		SX1278_hw_SPICommand(module->hw, address);
+		response = SX1278_hw_SPIReadByte(module->hw);
+	} else { // write
+		SX1278_hw_SPICommand(module->hw, address);
+		SX1278_hw_SPICommand(module->hw, value);
+	}
+
+	HAL_GPIO_WritePin(module->hw->nss.port, module->hw->nss.pin, GPIO_PIN_SET);
+
+	//if(address == 0b10000000){
+	//printf("1.LoRa_singleTransfer RegFIFO= %s\r\n", LoRa_readRegister(module, RegFIFO));
+	//}
+
+	return response;
+}
