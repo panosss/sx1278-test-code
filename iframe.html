@@ -1,0 +1,9 @@
+<script>
+  window.addEventListener('message', (event) => {
+    // Ελέγξτε το origin του μηνύματος για ασφάλεια
+    // if (event.origin !== 'https://expected-origin.com') return;
+
+    // Μεταφέρετε το μήνυμα στην άλλη καρτέλα
+    window.parent.postMessage(event.data, '*');
+  });
+</script>
